@@ -2,21 +2,57 @@ from fastapi import APIRouter, status, HTTPException
 from typing import List, Dict, Tuple
 from uuid import UUID
 from pydantic import BaseModel
+import json
 
 from crud import history_crud, jobs_crud
 from schema import RecommendResponse, JobDetailResponse
 from models.HistoryTable import HistoryTableSchema
+from core.db import session as db_session
+from sqlalchemy import text
 
 router = APIRouter()
 
 # ============================================================
-# キャッシュ
-# dreamer_id(str) -> [(job_id, similarity_score), ...]
-# スコア順に並んでいて、recommend のたびに先頭から消費する
+# DB永続化ヘルパー（dreamer_profiles テーブル）
 # ============================================================
-_recommend_cache: Dict[str, List[Tuple[int, float]]] = {}
 
+def _save_profile(dreamer_id: str, job_scores: List[Tuple[int, float]]):
+    """analyze結果をDBに保存（upsert）"""
+    data = json.dumps([[jid, score] for jid, score in job_scores])
+    db_session.execute(text("""
+        INSERT INTO dreamer_profiles (dreamer_id, job_scores, updated_at)
+        VALUES (:did, CAST(:data AS jsonb), NOW())
+        ON CONFLICT (dreamer_id)
+        DO UPDATE SET job_scores = CAST(:data AS jsonb), updated_at = NOW()
+    """), {"did": dreamer_id, "data": data})
+    db_session.commit()
+
+
+def _load_profile(dreamer_id: str) -> List[Tuple[int, float]]:
+    """DBからanalyze結果を読み込む"""
+    row = db_session.execute(text(
+        "SELECT job_scores FROM dreamer_profiles WHERE dreamer_id = :did"
+    ), {"did": dreamer_id}).fetchone()
+    if row is None:
+        return []
+    return [(int(item[0]), float(item[1])) for item in row[0]]
+
+
+def _pop_next(dreamer_id: str) -> Tuple[int, float] | None:
+    """先頭を取り出してDBを更新"""
+    scores = _load_profile(dreamer_id)
+    if not scores:
+        return None
+    head = scores[0]
+    rest = scores[1:]
+    _save_profile(dreamer_id, rest)
+    return head
+
+
+# ============================================================
 # ベクトルDB（遅延初期化）
+# ============================================================
+
 _vector_db = None
 
 def _get_vector_db():
@@ -32,17 +68,18 @@ def _get_vector_db():
 
 
 def _all_jobs_name_map():
-    """job_name -> job_id の辞書を返す"""
+    try:
+        db_session.expire_all()  # 長時間処理後のセッション失効を防ぐ
+    except Exception:
+        pass
     _, all_jobs, _ = jobs_crud.read([])
+    if not all_jobs:
+        return {}
     return {(getattr(j, "name", "") or "").strip(): getattr(j, "job_id", 0)
             for j in all_jobs}
 
 
 def _chroma_search_by_text(query_text: str) -> List[Tuple[int, float]]:
-    """
-    テキストでChromaDB検索 → [(job_id, score), ...] を返す
-    マッチしない jobはDB全件をスコア0で末尾に付加
-    """
     vector_db = _get_vector_db()
     if vector_db is None:
         return []
@@ -52,20 +89,19 @@ def _chroma_search_by_text(query_text: str) -> List[Tuple[int, float]]:
         return []
 
     name_map = _all_jobs_name_map()
-
-    ordered: List[Tuple[int, float]] = []
-    # L2距離: 小さいほど類似。相対スコアで 1位=95%, n位=50% に正規化
     n = len(results["ids"][0])
+    ordered: List[Tuple[int, float]] = []
     seen_ids = set()
-    for i in range(len(results["ids"][0])):
+
+    for i in range(n):
         name = results["metadatas"][0][i].get("name", "")
-        score = round(95 - (45 * i / max(n - 1, 1)), 1)  # 95% → 50%
+        score = round(95 - (45 * i / max(n - 1, 1)), 1)
         jid = name_map.get(name.strip())
         if jid and jid not in seen_ids:
             ordered.append((jid, score))
             seen_ids.add(jid)
 
-    # ChromaDBにないジョブをスコア0で末尾に追加（フォールバック）
+    # ChromaDBにない job をスコア0で末尾に
     _, all_jobs, _ = jobs_crud.read([])
     for j in all_jobs:
         jid = getattr(j, "job_id", 0)
@@ -76,26 +112,20 @@ def _chroma_search_by_text(query_text: str) -> List[Tuple[int, float]]:
     return ordered
 
 
-def _reorder_cache(dreamer_id: str, job_id: int, boost: bool):
-    """
-    good(boost=True)  → 類似jobをキャッシュ先頭へ
-    bad (boost=False) → 類似jobをキャッシュ末尾へ
-    """
+def _reorder_by_feedback(dreamer_id: str, job_id: int, boost: bool):
     vector_db = _get_vector_db()
-    cache_key = str(dreamer_id)
-    if vector_db is None or cache_key not in _recommend_cache:
+    scores = _load_profile(dreamer_id)
+    if not vector_db or not scores:
         return
 
-    # 対象jobの名前・説明を取得してベクトル検索
     _, jobs, _ = jobs_crud.read([["job_id", "==", job_id]])
     if not jobs:
         return
     job = jobs[0]
     job_name = (getattr(job, "name", "") or "").strip()
     job_desc = (getattr(job, "description", "") or "").strip()
-    query = f"{job_name} {job_desc}"
 
-    results = vector_db.search(query)
+    results = vector_db.search(f"{job_name} {job_desc}")
     if not results["ids"] or not results["ids"][0]:
         return
 
@@ -107,21 +137,17 @@ def _reorder_cache(dreamer_id: str, job_id: int, boost: bool):
         if jid and jid != job_id:
             similar_ids.add(jid)
 
-    current = _recommend_cache[cache_key]
-    similar_items = [(jid, s) for jid, s in current if jid in similar_ids]
-    rest_items    = [(jid, s) for jid, s in current if jid not in similar_ids]
+    similar = [(jid, s) for jid, s in scores if jid in similar_ids]
+    rest    = [(jid, s) for jid, s in scores if jid not in similar_ids]
 
-    if boost:
-        _recommend_cache[cache_key] = similar_items + rest_items
-    else:
-        _recommend_cache[cache_key] = rest_items + similar_items
-
-    print(f"[Cache] dreamer={dreamer_id} {'boost' if boost else 'demote'} job_id={job_id} "
-          f"対象={len(similar_ids)}件")
+    new_scores = (similar + rest) if boost else (rest + similar)
+    _save_profile(dreamer_id, new_scores)
+    print(f"[Feedback] dreamer={dreamer_id} {'boost' if boost else 'demote'} "
+          f"job_id={job_id} 対象={len(similar_ids)}件")
 
 
 # ============================================================
-# analyze  ─ init-answers から呼ばれる
+# analyze
 # ============================================================
 
 class AnswerItem(BaseModel):
@@ -136,7 +162,6 @@ class AnalyzeRequest(BaseModel):
 
 @router.post("/analyze")
 async def analyze_answers(request: AnalyzeRequest):
-    """回答をベクトル検索で分析し job_id リストをキャッシュに保存"""
     import os
     openai_key = os.getenv("OPENAI_API_KEY", "")
     if not openai_key:
@@ -146,55 +171,49 @@ async def analyze_answers(request: AnalyzeRequest):
     if vector_db is None:
         raise HTTPException(status_code=500, detail="ベクトル検索エンジンの初期化に失敗しました")
 
-    # 1. 回答リストを job_suggest の形式に変換
     answers_for_suggest = [
         {"category": a.category, "q": a.q, "a": a.a}
         for a in request.answers
     ]
 
-    # 2. OpenAI でユーザープロファイル生成
     profile_text = vector_db.agent.synthesize_user_query(answers_for_suggest)
     print(f"[Analyze] プロファイル: {profile_text[:80]}...")
 
-    # 3. ChromaDB でベクトル検索 → スコア順 job リスト
     ordered = _chroma_search_by_text(profile_text)
     if not ordered:
         raise HTTPException(status_code=500, detail="ベクトル検索結果が0件です")
 
-    _recommend_cache[request.dreamer_id] = ordered
+    _save_profile(request.dreamer_id, ordered)
     matched = len([x for x in ordered if x[1] > 0])
-    print(f"[Analyze] キャッシュ保存: dreamer={request.dreamer_id} "
-          f"ベクトルマッチ={matched}件 / 全{len(ordered)}件")
+    print(f"[Analyze] DB保存: dreamer={request.dreamer_id} マッチ={matched}件")
 
     return {"status": "ok", "matched": matched}
 
 
 # ============================================================
-# recommend ─ スコア順に1件ずつ返す
+# recommend
 # ============================================================
 
 @router.get("/recommend/{dreamer_id}")
 async def recommend(dreamer_id: UUID):
-    """スコア順上位のジョブを1件返す"""
     import random
 
-    cache_key = str(dreamer_id)
-    cached = _recommend_cache.get(cache_key)
+    next_item = _pop_next(str(dreamer_id))
 
-    if cached:
-        job_id, similarity_score = cached[0]
-        _recommend_cache[cache_key] = cached[1:]
+    if next_item:
+        job_id, similarity_score = next_item
         _, jobs, _ = jobs_crud.read([["job_id", "==", job_id]])
         if not jobs:
             _, jobs, _ = jobs_crud.read([])
+        job = jobs[0] if jobs else None
     else:
         similarity_score = 0.0
         _, jobs, _ = jobs_crud.read([])
+        job = random.choice(jobs) if jobs else None
 
-    if not jobs:
+    if not job:
         raise HTTPException(status_code=404, detail="jobデータがありません")
 
-    job = jobs[0] if cached else random.choice(jobs)
     job_id = getattr(job, "job_id", 0)
 
     _, new_hist, _ = history_crud.create(HistoryTableSchema(
@@ -225,8 +244,7 @@ async def recommend(dreamer_id: UUID):
 
 @router.put("/good/{history_id}", status_code=status.HTTP_200_OK)
 async def mark_good(history_id: UUID):
-    """いいね登録 → 類似ジョブをキャッシュ先頭へ"""
-    _, updated_list, error = history_crud.update(
+    _, updated_list, _ = history_crud.update(
         [["history_id", "==", history_id]],
         {"good": True}
     )
@@ -236,17 +254,15 @@ async def mark_good(history_id: UUID):
     hist = updated_list[0]
     dreamer_id = str(getattr(hist, "dreamer_id", ""))
     job_id = int(getattr(hist, "job_id", 0))
-
     if dreamer_id and job_id:
-        _reorder_cache(dreamer_id, job_id, boost=True)
+        _reorder_by_feedback(dreamer_id, job_id, boost=True)
 
     return {"status": "ok"}
 
 
 @router.put("/bad/{history_id}", status_code=status.HTTP_200_OK)
 async def mark_bad(history_id: UUID):
-    """バッド登録 → 類似ジョブをキャッシュ末尾へ"""
-    _, updated_list, error = history_crud.update(
+    _, updated_list, _ = history_crud.update(
         [["history_id", "==", history_id]],
         {"bad": True}
     )
@@ -256,17 +272,15 @@ async def mark_bad(history_id: UUID):
     hist = updated_list[0]
     dreamer_id = str(getattr(hist, "dreamer_id", ""))
     job_id = int(getattr(hist, "job_id", 0))
-
     if dreamer_id and job_id:
-        _reorder_cache(dreamer_id, job_id, boost=False)
+        _reorder_by_feedback(dreamer_id, job_id, boost=False)
 
     return {"status": "ok"}
 
 
 @router.put("/save/{history_id}", status_code=status.HTTP_200_OK)
 async def mark_save(history_id: UUID):
-    """保存登録"""
-    _, updated_list, error = history_crud.update(
+    history_crud.update(
         [["history_id", "==", history_id]],
         {"save": True}
     )
@@ -279,7 +293,7 @@ async def mark_save(history_id: UUID):
 
 @router.get("/detail/{job_id}", response_model=JobDetailResponse)
 async def get_detail(job_id: int):
-    _, jobs, error = jobs_crud.read([["job_id", "==", job_id]])
+    _, jobs, _ = jobs_crud.read([["job_id", "==", job_id]])
     if not jobs:
         raise HTTPException(status_code=404, detail="job が見つかりません")
 
