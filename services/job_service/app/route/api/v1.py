@@ -54,12 +54,12 @@ def _chroma_search_by_text(query_text: str) -> List[Tuple[int, float]]:
     name_map = _all_jobs_name_map()
 
     ordered: List[Tuple[int, float]] = []
-    # L2距離: 小さいほど類似。スコアは 1/(1+distance)*100 で正規化
+    # L2距離: 小さいほど類似。相対スコアで 1位=95%, n位=50% に正規化
+    n = len(results["ids"][0])
     seen_ids = set()
     for i in range(len(results["ids"][0])):
         name = results["metadatas"][0][i].get("name", "")
-        distance = results["distances"][0][i]
-        score = round(1 / (1 + distance) * 100, 1)
+        score = round(95 - (45 * i / max(n - 1, 1)), 1)  # 95% → 50%
         jid = name_map.get(name.strip())
         if jid and jid not in seen_ids:
             ordered.append((jid, score))
