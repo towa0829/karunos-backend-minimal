@@ -6,3 +6,8 @@ COPY requirements.txt ./
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
+
+# Sentence-BERTモデルをビルド時にダウンロード（コールドスタート対策）
+RUN python3 -c "\
+from sentence_transformers import SentenceTransformer; \
+SentenceTransformer('sonoisa/sentence-bert-base-ja-mean-tokens')"

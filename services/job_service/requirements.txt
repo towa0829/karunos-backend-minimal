@@ -11,3 +11,7 @@ grpcio-tools
 websockets
 openai
 python-dotenv
+chromadb==0.4.24
+sentence-transformers==2.7.0
+transformers==4.38.2
+httpx
