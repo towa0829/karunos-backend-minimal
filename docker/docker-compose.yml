@@ -1,0 +1,80 @@
+services:
+  # Dreamer Service
+  dreamer-db:
+    container_name: "dreamer-db"
+    image: postgres:17.5
+    networks:
+      - karynos-network
+    environment:
+      POSTGRES_USER: dreamer_db_user
+      POSTGRES_PASSWORD: dreamer
+      POSTGRES_DB: dreamer_db
+    volumes:
+      - ../services/dreamer_service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../services/dreamer_service/db-data:/var/lib/postgresql/data
+
+  dreamer-service:
+    container_name: "dreamer-service"
+    build:
+      context: ../services/dreamer_service
+    networks:
+      - karynos-network
+    depends_on:
+      - dreamer-db
+    env_file:
+      - ../services/dreamer_service/.dreamer_env
+    environment:
+      - "POSTGRES_SERVER=dreamer-db"
+    volumes:
+      - ../services/dreamer_service/app:/app
+      - ../shared:/app/shared
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Job Service
+  job-db:
+    container_name: "job-db"
+    image: postgres:17.5
+    networks:
+      - karynos-network
+    environment:
+      POSTGRES_USER: job_db_user
+      POSTGRES_PASSWORD: job
+      POSTGRES_DB: job_db
+    volumes:
+      - ../services/job_service/db/:/docker-entrypoint-initdb.d/
+      - ../services/job_service/db-data:/var/lib/postgresql/data
+
+  job-service:
+    container_name: "job-service"
+    build:
+      context: ../services/job_service
+    networks:
+      - karynos-network
+    depends_on:
+      - job-db
+    env_file:
+      - ../services/job_service/.job_env
+    environment:
+      - "POSTGRES_SERVER=job-db"
+    volumes:
+      - ../services/job_service/app:/app
+      - ../shared:/app/shared
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # API Gateway
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ../nginx/dev.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - dreamer-service
+      - job-service
+    networks:
+      - karynos-network
+
+networks:
+  karynos-network:
+    driver: bridge

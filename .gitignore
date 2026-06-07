@@ -1,0 +1,23 @@
+# 環境変数ファイル（秘密情報を含む）
+**/.env
+**/.env.*
+**/.job_env
+**/.dreamer_env
+**/.chat_env
+**/.mentor_env
+**/.organization_env
+**/.textbook_env
+**/.notification_env
+
+# DBデータ
+**/db-data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Docker
+*.log

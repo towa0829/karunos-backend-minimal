@@ -1,0 +1,8 @@
+## title: {title}
+
+## message: {message}
+
+## textbook: {textbook}
+
+## 生徒情報
+{persona}

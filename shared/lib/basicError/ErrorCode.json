@@ -1,0 +1,346 @@
+{
+	"MissingRequiredParameter": {
+		"code": "11001",
+		"category": "VAL",
+		"message": {
+			"ja": "必須パラメータ不足",
+			"en": "Required parameter missing"
+		}
+	},
+	"InvalidFormat": {
+		"code": "12001",
+		"category": "VAL",
+		"message": {
+			"ja": "値の形式不正",
+			"en": "Invalid value format"
+		}
+	},
+	"ValueOutOfRange": {
+		"code": "12002",
+		"category": "VAL",
+		"message": {
+			"ja": "範囲外の値",
+			"en": "Value out of range"
+		}
+	},
+	"DuplicateInput": {
+		"code": "13001",
+		"category": "VAL",
+		"message": {
+			"ja": "入力値が既存データと重複",
+			"en": "Input value duplicates existing data"
+		}
+	},
+	"RelatedResourceNotFound": {
+		"code": "14001",
+		"category": "VAL",
+		"message": {
+			"ja": "関連リソースが存在しない",
+			"en": "Related resource does not exist"
+		}
+	},
+	"AuthenticationMissing": {
+		"code": "21001",
+		"category": "AUTH",
+		"message": {
+			"ja": "認証情報不足",
+			"en": "Authentication information missing"
+		}
+	},
+	"AuthenticationFailed": {
+		"code": "21002",
+		"category": "AUTH",
+		"message": {
+			"ja": "認証失敗",
+			"en": "Authentication failed"
+		}
+	},
+	"InsufficientPermissions": {
+		"code": "22001",
+		"category": "AUTH",
+		"message": {
+			"ja": "権限不足",
+			"en": "Insufficient permissions"
+		}
+	},
+	"SessionExpired": {
+		"code": "23001",
+		"category": "AUTH",
+		"message": {
+			"ja": "セッション期限切れ",
+			"en": "Session expired"
+		}
+	},
+	"MfaIncomplete": {
+		"code": "24001",
+		"category": "AUTH",
+		"message": {
+			"ja": "多要素認証未完了",
+			"en": "Multi-factor authentication incomplete"
+		}
+	},
+	"AccountLocked": {
+		"code": "25001",
+		"category": "AUTH",
+		"message": {
+			"ja": "アカウントロック / 無効化済みユーザー",
+			"en": "Account locked / Disabled user"
+		}
+	},
+	"RecordNotFound": {
+		"code": "31001",
+		"category": "DB",
+		"message": {
+			"ja": "レコード未検出",
+			"en": "Record not found"
+		}
+	},
+	"QueryError": {
+		"code": "32001",
+		"category": "DB",
+		"message": {
+			"ja": "クエリエラー",
+			"en": "Query error"
+		}
+	},
+	"TransactionConflict": {
+		"code": "33001",
+		"category": "DB",
+		"message": {
+			"ja": "トランザクション競合",
+			"en": "Transaction conflict"
+		}
+	},
+	"DuplicateKeyError": {
+		"code": "33002",
+		"category": "DB",
+		"message": {
+			"ja": "重複キーエラー",
+			"en": "Duplicate key error"
+		}
+	},
+	"DatabaseConnectionFailed": {
+		"code": "34001",
+		"category": "DB",
+		"message": {
+			"ja": "DB接続失敗",
+			"en": "Database connection failed"
+		}
+	},
+	"StorageFull": {
+		"code": "35001",
+		"category": "DB",
+		"message": {
+			"ja": "ストレージ容量不足",
+			"en": "Insufficient storage capacity"
+		}
+	},
+	"ExternalApiAuthFailed": {
+		"code": "41001",
+		"category": "EXT",
+		"message": {
+			"ja": "外部API認証失敗",
+			"en": "External API authentication failed"
+		}
+	},
+	"ExternalApiInvalidResponse": {
+		"code": "42001",
+		"category": "EXT",
+		"message": {
+			"ja": "外部APIレスポンス不正",
+			"en": "Invalid external API response"
+		}
+	},
+	"ExternalApiTimeout": {
+		"code": "43001",
+		"category": "EXT",
+		"message": {
+			"ja": "外部APIタイムアウト",
+			"en": "External API timeout"
+		}
+	},
+	"ExternalServiceDown": {
+		"code": "43002",
+		"category": "EXT",
+		"message": {
+			"ja": "外部サービスがダウン",
+			"en": "External service is down"
+		}
+	},
+	"ThirdPartySdkError": {
+		"code": "44001",
+		"category": "EXT",
+		"message": {
+			"ja": "サードパーティSDKエラー",
+			"en": "Third-party SDK error"
+		}
+	},
+	"ExternalSystemTemporaryLimit": {
+		"code": "45001",
+		"category": "EXT",
+		"message": {
+			"ja": "外部システム依存の一時的制限",
+			"en": "Temporary restriction due to external system dependency"
+		}
+	},
+	"ServerInternalException": {
+		"code": "51001",
+		"category": "SYS",
+		"message": {
+			"ja": "サーバー内部例外",
+			"en": "Server internal exception"
+		}
+	},
+	"InvalidConfigFile": {
+		"code": "52001",
+		"category": "SYS",
+		"message": {
+			"ja": "設定ファイル不正",
+			"en": "Invalid configuration file"
+		}
+	},
+	"OutOfMemory": {
+		"code": "53001",
+		"category": "SYS",
+		"message": {
+			"ja": "メモリ不足",
+			"en": "Out of memory"
+		}
+	},
+	"DiskSpaceInsufficient": {
+		"code": "53002",
+		"category": "SYS",
+		"message": {
+			"ja": "ディスク容量不足",
+			"en": "Disk space insufficient"
+		}
+	},
+	"ServiceStartupFailed": {
+		"code": "54001",
+		"category": "SYS",
+		"message": {
+			"ja": "サービス起動失敗",
+			"en": "Service startup failed"
+		}
+	},
+	"InternalInconsistency": {
+		"code": "55001",
+		"category": "SYS",
+		"message": {
+			"ja": "内部不整合",
+			"en": "Internal inconsistency"
+		}
+	},
+	"FileIsNotFount": {
+		"code": "54002",
+		"category": "SYS",
+		"message": {
+			"ja": "無効なファイルパス",
+			"en": "File is not found"
+		}
+	},
+	"FileOpenError": {
+		"code": "52002",
+		"category": "SYS",
+		"message": {
+		"ja": "ファイル読み込みエラー",
+		"en": "File opening failed"
+		}
+	},
+	"NetworkConnectionFailed": {
+		"code": "61001",
+		"category": "NET",
+		"message": {
+			"ja": "ネットワーク接続失敗",
+			"en": "Network connection failed"
+		}
+	},
+	"DnsResolutionFailed": {
+		"code": "62001",
+		"category": "NET",
+		"message": {
+			"ja": "DNS解決失敗",
+			"en": "DNS resolution failed"
+		}
+	},
+	"CommunicationTimeout": {
+		"code": "63001",
+		"category": "NET",
+		"message": {
+			"ja": "通信タイムアウト",
+			"en": "Communication timeout"
+		}
+	},
+	"LoadBalancingFailed": {
+		"code": "64001",
+		"category": "NET",
+		"message": {
+			"ja": "負荷分散ルーティング失敗",
+			"en": "Load balancing routing failed"
+		}
+	},
+	"InterServiceAuthError": {
+		"code": "65001",
+		"category": "NET",
+		"message": {
+			"ja": "サービス間通信認証エラー",
+			"en": "Inter-service communication authentication error"
+		}
+	},
+	"RequestLimitExceeded": {
+		"code": "81001",
+		"category": "RATE",
+		"message": {
+			"ja": "リクエスト数超過",
+			"en": "Request limit exceeded"
+		}
+	},
+	"ApiKeyLimitExceeded": {
+		"code": "82001",
+		"category": "RATE",
+		"message": {
+			"ja": "APIキー利用制限超過",
+			"en": "API key usage limit exceeded"
+		}
+	},
+	"BandwidthLimitExceeded": {
+		"code": "83001",
+		"category": "RATE",
+		"message": {
+			"ja": "帯域幅制限",
+			"en": "Bandwidth limit exceeded"
+		}
+	},
+	"TemporaryBlockForProtection": {
+		"code": "85001",
+		"category": "RATE",
+		"message": {
+			"ja": "システム保護のための一時ブロック",
+			"en": "Temporary block for system protection"
+		}
+	},
+	"UnknownError": {
+		"code": "91001",
+		"category": "UNK",
+		"message": {
+			"ja": "未知のエラー",
+			"en": "Unknown error"
+		}
+	},
+	"UnclassifiedSystemException": {
+		"code": "92001",
+		"category": "UNK",
+		"message": {
+			"ja": "未分類のシステム例外",
+			"en": "Unclassified system exception"
+		}
+	},
+	"FallbackError": {
+		"code": "99999",
+		"category": "UNK",
+		"message": {
+			"ja": "フォールバック（汎用キャッチオール）",
+			"en": "Fallback (generic catch-all)"
+		}
+	}
+}

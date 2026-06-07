@@ -1,0 +1,113 @@
+{
+    "services": {
+        "TextBook": {
+            "Service_name": "TextBook",
+            "Methods": ["GenerateElement", "GeneratePlan", "GenerateStructure"],
+            "server": [
+                {
+                    "HostName": "textbook_service_1",
+                    "Port": 50000
+                }
+            ]
+        },
+
+        "Exercise": {
+            "Service_name": "Exercise",
+            "Methods": ["GenerateExercise"],
+            "server": [
+                {
+                    "HostName": "exercise_service_1",
+                    "Port": 50010
+                }
+            ]
+        },
+
+        "Element": {
+            "Service_name": "Element",
+            "Methods": ["GenerateDefinition", "GenerateColumn", "GenerateFormula", "GenerateSummary", "GenerateTheorem", "GenerateText"],
+            "server": [
+                {
+                    "HostName": "element_service_1",
+                    "Port": 50020
+                }
+            ]
+        },
+
+        "Search": {
+            "Service_name": "Search",
+            "Methods": ["search"],
+            "server": [
+                {
+                    "HostName": "search_service_1",
+                    "Port": 50030
+                }
+            ]
+        },
+
+        "Solve": {
+            "Service_name": "Solve",
+            "Methods": ["solveMath"],
+            "server": [
+                {
+                    "HostName": "solve_service_1",
+                    "Port": 50040
+                }
+            ]
+        },
+
+        "Vision": {
+            "Service_name": "Vision",
+            "Methods": ["GenerateVision"],
+            "server": [
+                {
+                    "HostName": "vision_service_1",
+                    "Port": 50050
+                }
+            ]
+        },
+
+        "LLM": {
+            "Service_name": "LLM",
+            "Methods": ["GeneralInvoke", "StructInvoke"],
+            "server": [
+                {
+                    "HostName": "llm_service_1",
+                    "Port": 50060
+                }
+            ]
+        },
+
+        "Code": {
+            "Service_name": "Code",
+            "Methods": ["GenerateCode", "ExecCode", "GenExecCode"],
+            "server": [
+                {
+                    "HostName": "code_service_1",
+                    "Port": 50070
+                }
+            ]
+        },
+
+        "Chat": {
+            "Service_name": "Chat",
+            "Methods": ["ChatInvoke"],
+            "server": [
+                {
+                    "HostName": "chat_service_1",
+                    "Port": 50080
+                }
+            ]
+        },       
+
+        "Persona": {
+            "Service_name": "Persona",
+            "Methods": ["CreatePersona"],
+            "server": [
+                {
+                    "HostName": "persona_service_1",
+                    "Port": 50090
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic-settings
+uuid6
+sqlalchemy
+python-dateutil
+psycopg2-binary
+requests
+grpcio
+grpcio-tools
+websockets
